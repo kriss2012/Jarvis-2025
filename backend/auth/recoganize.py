@@ -2,6 +2,7 @@ from sys import flags
 import time
 import cv2
 import pyautogui as p
+import os
 
 
 def AuthenticateFace():
@@ -20,10 +21,11 @@ def AuthenticateFace():
     else:
         raise RuntimeError("LBPHFaceRecognizer not found in cv2.face; install opencv-contrib-python.")
 
-    recognizer.read('backend\\auth\\trainer\\trainer.yml')  # load trained model
-    cascadePath = "backend\\auth\\haarcascade_frontalface_default.xml"
+    trainer_path = os.path.join("backend", "auth", "trainer", "trainer.yml")
+    recognizer.read(trainer_path)  # load trained model
+    cascade_path = os.path.join("backend", "auth", "haarcascade_frontalface_default.xml")
     # initializing haar cascade for object detection approach
-    faceCascade = cv2.CascadeClassifier(cascadePath)
+    faceCascade = cv2.CascadeClassifier(cascade_path)
 
     font = cv2.FONT_HERSHEY_SIMPLEX  # denotes the font type
 
@@ -31,7 +33,7 @@ def AuthenticateFace():
     id = 2  # number of persons you want to Recognize
 
 
-    names = ['','', 'Ankit']  # names, leave first empty bcz counter starts from 0
+    names = ['','', 'krishna']  # names, leave first empty bcz counter starts from 0
 
 
     cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # cv2.CAP_DSHOW to remove warning
