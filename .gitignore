@@ -1,0 +1,40 @@
+# Python Specifics
+__pycache__/
+*.py[cod]
+*$py.class
+envJarvis/
+venv/
+.env
+
+# Databases
+jarvis.db
+
+# Logs and Backups
+logs/
+backups/
+*.log
+
+# IDE and System Files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Generated Project Metadata
+EDITED_FILES.txt
+EXACT_CODE_CHANGES.txt
+FILES_EDITED_AND_CREATED.txt
+FIX_SUMMARY.md
+PROJECT_COMPLETE_SUMMARY.txt
+MASTER_INDEX.txt
+READ_ME_FIRST.txt
+INTELLIGENT_JARVIS_GUIDE.txt
+INTELLIGENT_JARVIS_QUICKSTART.txt
+INTELLIGENT_JARVIS_UPGRADE.txt
+HOW_TO_ADD_COOKIES.txt
+
+# Others
+tempCodeRunnerFile.py
+backend/cookie.json
+backend/__pycache__/
+frontend/__pycache__/
