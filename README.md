@@ -4,7 +4,7 @@ A desktop assistant project that uses Eel for the frontend and a Python backend 
 
 Quick start
 
-1. Create and activate a virtualenv (recommended):
+### Step 1: Create Virtual Environment
 
 ```powershell
 python -m venv .\envJarvis
@@ -13,18 +13,43 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-2. (Optional) Export your Hugging Face cookies JSON and save to `backend/cookie.json` (private):
-
-- Export cookies for huggingface.co as a JSON array and place the file at `backend/cookie.json`.
-
-3. Run the app:
+### Step 2: Initialize Database
 
 ```powershell
-python .\run.py
+python create_sample_db.py
 ```
 
-Notes
-- `backend/cookie.json` is ignored in `.gitignore` because it contains auth cookies. Keep it private.
-- `envJarvis/` is ignored.
+### Step 3: Configure HuggingFace Cookies (Optional)
+
+Export your HuggingFace cookies and save to `backend/cookie.json`
+
+### Step 4: Run the Application
+
+```powershell
+python run.py
+```
+
+## Troubleshooting
+
+**NumPy Compatibility Error:**
+```
+pip install 'numpy<2.0'
+```
+
+**PyAudio Issues:**
+```
+pipwin install pyaudio
+```
+
+**cv2.face Module Error:**
+```
+pip install opencv-contrib-python
+```
+
+## Notes
+
+- `backend/cookie.json` is ignored (contains auth cookies)
+- `envJarvis/` is ignored
+- Database: `jarvis.db`
 
 License: MIT
