@@ -1,0 +1,9 @@
+{
+  "name": "jarvis-doc-generator",
+  "version": "1.0.0",
+  "description": "Helper to generate enterprise docx files for Jarvis-2025",
+  "main": "generate_docs.js",
+  "dependencies": {
+    "docx": "^8.5.0"
+  }
+}
