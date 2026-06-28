@@ -62,6 +62,11 @@ class CommandProcessor:
                 'en': ['language', 'change language', 'speak', 'hindi', 'marathi', 'english'],
                 'hi': ['भाषा', 'हिंदी', 'मराठी', 'अंग्रेजी'],
                 'mr': ['भाषा', 'हिंदी', 'मराठी', 'इंग्रजी']
+            },
+            'persona': {
+                'en': ['activate friday', 'activate jarvis', 'switch to friday', 'switch to jarvis', 'friday mode', 'jarvis mode', 'friday', 'jarvis'],
+                'hi': ['फ्राइडे चालू करो', 'जार्विस चालू करो', 'फ्राइडे', 'जार्विस'],
+                'mr': ['फ्रायडे चालू करा', 'जार्विस चालू करा', 'फ्रायडे', 'जार्विस']
             }
         }
     
