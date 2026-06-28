@@ -49,7 +49,8 @@ def play_assistant_sound():
 def openCommand(query):
     """Open applications or websites based on query"""
     try:
-        query = query.replace(ASSISTANT_NAME, "")
+        active_name = get_active_persona().lower()
+        query = query.replace(active_name, "").replace("jarvis", "").replace("friday", "")
         query = query.replace("open", "")
         query = query.lower()
         app_name = query.strip()
@@ -159,7 +160,8 @@ def hotword():
 def findContact(query):
     """Find contact phone number from database"""
     try:
-        words_to_remove = [ASSISTANT_NAME, 'make', 'a', 'to', 'phone', 'call', 'send', 'message', 'wahtsapp', 'video']
+        active_name = get_active_persona().lower()
+        words_to_remove = [active_name, 'jarvis', 'friday', 'make', 'a', 'to', 'phone', 'call', 'send', 'message', 'wahtsapp', 'video']
         query = remove_words(query, words_to_remove)
 
         try:
@@ -224,43 +226,182 @@ def whatsApp(Phone, message, flag, name):
         print(f"WhatsApp error: {e}")
         speak("Error sending WhatsApp message")
 
-def chatBot(query):
-    """Chat with HuggingChat AI"""
+def query_offline_ollama(query):
+    """Query the local offline Ollama model"""
+    import subprocess
+    import requests
+    import time
+    
+    ollama_url = "http://127.0.0.1:11434"
+    model_name = "gemma-heretic-local"
+    ollama_path = "G:\\Shared\\bin\\ollama-windows.exe"
+    modelfile_path = "G:\\Shared\\models\\Modelfile"
+    
+    # 1. Check if Ollama is running
+    is_running = False
     try:
-        user_input = query.lower()
-        cookie_path = os.path.join("backend", "cookie.json")
+        response = requests.get(f"{ollama_url}/api/tags", timeout=2)
+        if response.status_code == 200:
+            is_running = True
+    except Exception:
+        pass
         
-        if not os.path.exists(cookie_path):
-            error_msg = "Cookie file not found. Configure HuggingFace cookies in backend/cookie.json"
-            speak(error_msg)
-            print(f"ChatBot error: {error_msg}")
-            return error_msg
-        
-        # Check if cookies are valid
-        with open(cookie_path, 'r') as f:
-            content = f.read().strip()
-            if content == "[]" or not content:
-                error_msg = "No cookies configured. Add your HuggingFace cookies to backend/cookie.json"
-                speak(error_msg)
-                print(f"ChatBot error: {error_msg}")
-                return error_msg
-        
-        try:
-            chatbot = hugchat.ChatBot(cookie_path=cookie_path)
-            id = chatbot.new_conversation()
-            chatbot.change_conversation(id)
-            response = chatbot.chat(user_input)
-            print(f"ChatBot response: {response}")
-            speak(response)
-            return response
-        except Exception as chat_error:
-            error_msg = f"HuggingChat error: {str(chat_error)}"
-            print(f"ChatBot connection error: {error_msg}")
-            speak("Cannot connect to HuggingChat. Please verify your cookies are valid.")
-            return error_msg
+    # 2. Try starting it if not running
+    if not is_running:
+        if os.path.exists(ollama_path):
+            print("Ollama is not running. Starting local Ollama server...")
+            try:
+                env = os.environ.copy()
+                env["OLLAMA_MODELS"] = "G:\\Shared\\models\\ollama_data"
+                subprocess.Popen([ollama_path, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+                # Wait for server to boot
+                for _ in range(6):
+                    time.sleep(1)
+                    try:
+                        resp = requests.get(f"{ollama_url}/api/tags", timeout=1)
+                        if resp.status_code == 200:
+                            is_running = True
+                            break
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"Failed to start Ollama process: {e}")
+        else:
+            print("Local Ollama executable not found at G:\\Shared\\bin\\ollama-windows.exe")
             
+    if not is_running:
+        return None
+        
+    # 3. Verify if model is loaded/registered
+    try:
+        tags_resp = requests.get(f"{ollama_url}/api/tags", timeout=2).json()
+        models = [m["name"] for m in tags_resp.get("models", [])]
+        has_model = any(model_name in m for m in models)
+        
+        if not has_model:
+            if os.path.exists(ollama_path) and os.path.exists(modelfile_path):
+                print(f"Model {model_name} not found. Creating model from Modelfile...")
+                env = os.environ.copy()
+                env["OLLAMA_MODELS"] = "G:\\Shared\\models\\ollama_data"
+                subprocess.run([ollama_path, "create", model_name, "-f", "Modelfile"], 
+                               cwd="G:\\Shared\\models", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+            else:
+                print("Cannot create model: Modelfile or Ollama executable missing.")
     except Exception as e:
-        error_msg = f"Unexpected error in chatBot: {str(e)}"
-        print(f"ChatBot error: {error_msg}")
-        speak("Error in chat response")
-        return error_msg
+        print(f"Error checking or creating model: {e}")
+        
+    # 4. Run inference
+    try:
+        persona = get_active_persona()
+        if persona.lower() == "friday":
+            system_prompt = "You are Friday, a highly efficient, modern, and loyal AI assistant like the one from Iron Man. Keep replies brief, conversational, and direct."
+        else:
+            system_prompt = "You are Jarvis, a brilliant, witty, and loyal AI assistant like the one from Iron Man. Keep replies brief, conversational, and direct."
+            
+        payload = {
+            "model": model_name,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {"role": "user", "content": query}
+            ],
+            "stream": False
+        }
+        
+        headers = {"Content-Type": "application/json"}
+        resp = requests.post(f"{ollama_url}/api/chat", json=payload, headers=headers, timeout=30)
+        
+        if resp.status_code == 200:
+            result = resp.json()
+            return result.get("message", {}).get("content", "")
+    except Exception as e:
+        print(f"Ollama inference error: {e}")
+        
+    return None
+
+def get_active_persona():
+    """Retrieve the active persona from persona_config.json"""
+    import json
+    import os
+    config_path = os.path.join("backend", "persona_config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            return config.get("persona", "Jarvis")
+        except Exception:
+            return "Jarvis"
+    return "Jarvis"
+
+def chatBot(query):
+    """Persona-aware Hybrid Online/Offline Chatbot:
+    - Friday: Online priority, falls back to offline.
+    - Jarvis: Offline priority, falls back to online.
+    """
+    user_input = query.lower()
+    persona = get_active_persona().lower()
+    is_friday = (persona == "friday")
+    
+    def run_online():
+        cookie_path = os.path.join("backend", "cookie.json")
+        if os.path.exists(cookie_path):
+            try:
+                with open(cookie_path, 'r') as f:
+                    content = f.read().strip()
+                if content and content != "[]":
+                    print("Attempting online query via HuggingChat...")
+                    chatbot = hugchat.ChatBot(cookie_path=cookie_path)
+                    id = chatbot.new_conversation()
+                    chatbot.change_conversation(id)
+                    online_response = chatbot.chat(user_input)
+                    return online_response
+            except Exception as e:
+                print(f"Online attempt failed: {e}")
+        return None
+
+    def run_offline():
+        print("Attempting offline query via local Ollama...")
+        return query_offline_ollama(query)
+
+    if is_friday:
+        # Friday: Online first, offline fallback
+        print("Friday active: prioritizing online cloud layers...")
+        resp = run_online()
+        if resp:
+            print(f"Friday (Online) response: {resp}")
+            speak(resp)
+            return resp
+        
+        print("Friday online failed. Falling back to local core...")
+        speak("Cloud link down, boss. Accessing offline backup...")
+        resp = run_offline()
+        if resp:
+            print(f"Friday (Offline fallback) response: {resp}")
+            speak(resp)
+            return resp
+    else:
+        # Jarvis: Offline first, online fallback
+        print("Jarvis active: prioritizing offline local core...")
+        resp = run_offline()
+        if resp:
+            print(f"Jarvis (Offline) response: {resp}")
+            speak(resp)
+            return resp
+            
+        print("Jarvis offline failed. Falling back to cloud layers...")
+        speak("Local database offline, sir. Reconnecting to cloud satellite backup...")
+        resp = run_online()
+        if resp:
+            print(f"Jarvis (Online fallback) response: {resp}")
+            speak(resp)
+            return resp
+
+    # Both failed
+    if is_friday:
+        err = "I am sorry, boss. Both the satellite connection and local backup cores are unresponsive."
+    else:
+        err = "My apologies, sir. I am unable to connect to either my local database or cloud relay satellites."
+    speak(err)
+    return err
