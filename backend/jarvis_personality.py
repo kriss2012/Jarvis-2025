@@ -1,11 +1,13 @@
 """
 Jarvis Personality Module
-Adds personality, wit, and natural responses like the real Jarvis from Iron Man
+Adds personality, wit, and natural responses like the real Jarvis/Friday from Iron Man
 """
 
 import random
 import time
 import logging
+import os
+import json
 from typing import Optional
 from datetime import datetime
 
@@ -13,14 +15,38 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class JarvisPersonality:
-    """Adds personality to Jarvis like the movie character"""
+    """Adds personality to Jarvis/Friday like the movie characters"""
     
     def __init__(self, name: str = "Jarvis"):
         self.name = name
+        self.config_path = os.path.join("backend", "persona_config.json")
+        self.load_persona()
         self.interactions = 0
-        self.user_name = "Sir"
         self.mood = "professional"  # professional, witty, humorous
         self.startup_done = False
+        
+    def load_persona(self):
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r') as f:
+                    config = json.load(f)
+                self.name = config.get("persona", "Jarvis")
+            except Exception:
+                self.name = "Jarvis"
+        else:
+            self.name = "Jarvis"
+            self.save_persona()
+            
+    def save_persona(self):
+        try:
+            with open(self.config_path, 'w') as f:
+                json.dump({"persona": self.name}, f)
+        except Exception:
+            pass
+            
+    @property
+    def user_name(self):
+        return "Boss" if self.name.lower() == "friday" else "Sir"
     
     def set_user_name(self, name: str):
         """Set the user's name for personalization"""
@@ -70,20 +96,31 @@ class JarvisPersonality:
     
     def get_startup_message(self, language: str = 'en') -> str:
         """Get startup message"""
+        is_friday = self.name.lower() == "friday"
         startup_msgs = {
             'en': [
-                "I am now online.",
-                "Systems online.",
+                "Friday online, boss. Ready when you are.",
+                "Friday at your service, boss. Cloud systems active.",
+                "Systems running. Hello, boss.",
+            ] if is_friday else [
+                "I am now online. Jarvis at your service, sir.",
+                "Systems online. Jarvis is ready.",
                 "I'm ready to assist, sir.",
                 "All systems operational.",
             ],
             'hi': [
-                "मैं अब ऑनलाइन हूं।",
+                "फ्राइडे ऑनलाइन है, बॉस। काम शुरू करने के लिए तैयार।",
+                "नमस्ते बॉस, फ्राइडे आपकी सेवा में हाजिर है।",
+            ] if is_friday else [
+                "मैं अब ऑनलाइन हूं। जार्विस आपकी सेवा में हाजिर है।",
                 "सिस्टम ऑनलाइन है।",
                 "मैं आपकी मदद के लिए तैयार हूं।",
             ],
             'mr': [
-                "मी आता ऑनलाइन आहे।",
+                "फ्रायडे ऑनलाइन आहे, बॉस। काम सुरू करण्यासाठी तयार।",
+                "नमस्कार बॉस, फ्रायडे आपल्या सेवेसाठी तयार आहे।",
+            ] if is_friday else [
+                "मी आता ऑनलाइन आहे। जार्विस आपल्या सेवेसाठी तयार आहे।",
                 "सिस्टम ऑनलाइन आहे।",
                 "मी तुम्हाला मदत करण्यासाठी तयार आहे।",
             ]
