@@ -176,9 +176,8 @@ async function makePRD() {
       ...spacer(1),
 
       // ── 1. Executive Summary ──
-      heading1("1. Executive Summary"),
-      body("Jarvis-2025 is an enterprise-grade AI desktop assistant that merges voice-activated command processing, real-time facial biometric authentication, and large language model (LLM) reasoning into a single unified platform. Built on Python + Eel, it exposes a web-native UI consumed locally, enabling rich interactivity without cloud round-trips for core interactions."),
-      body("This PRD defines the product scope, feature roadmap, system architecture, and success criteria required to evolve the current open-source prototype into a commercially deployable, multi-tenant, enterprise product branded under Antigravity Inc. In this version 1.2, the product is grounded strictly in our actual implementation: OpenCV LBPH Face Recognition, pvporcupine wake-word triggers, local pyttsx3 speech synthesis, pyautogui WhatsApp protocol automation, and hugchat HuggingFace session cookies."),
+      body("Jarvis-2025 is an enterprise-grade AI desktop assistant that merges voice-activated command processing, real-time facial biometric authentication, and hybrid large language model (LLM) reasoning into a single unified platform. Built on Python + Eel, it exposes a web-native UI consumed locally, enabling rich interactivity without cloud round-trips for core interactions."),
+      body("This PRD defines the product scope, feature roadmap, system architecture, and success criteria required to evolve the current open-source prototype into a commercially deployable, multi-tenant, enterprise product branded under Antigravity Inc. In this version 1.2, the product is grounded strictly in our actual implementation: OpenCV LBPH Face Recognition, pvporcupine wake-word triggers, local pyttsx3 speech synthesis, pyautogui WhatsApp protocol automation, and a hybrid online/offline NLU engine (HuggingFace online cookies + local Ollama Gemma-4-E4B heretic GGUF model fallback)."),,
 
       ...spacer(1),
       // ── 2. Problem Statement ──
@@ -215,10 +214,10 @@ async function makePRD() {
       bullet("Fuzzy intent matching & command processing via CommandProcessor with SequenceMatcher similarity ratios"),
       bullet("Context tracker that retains recent command states for follow-up dialogs"),
       bullet("Jarvis Movie-like Personality with witty, professional, and time-aware verbal greetings"),
-      bullet("AI Chat reasoning via hugchat module authenticated through HuggingFace session cookies in backend/cookie.json"),
+      bullet("AI Chat reasoning via a hybrid engine: tries online hugchat connection with cookie.json session; falls back to local offline Ollama port 11434 using gemma-heretic-local (Gemma-4-E4B GGUF) from G:\\Shared\\models"),
       bullet("Text-to-speech responses (pyttsx3 with Windows SAPI5 voice driver set at 174 WPM)"),
       bullet("SQLite database (jarvis.db with tables: sys_command, web_command, contacts)"),
-      bullet("Eel-based web UI frontend served on localhost:8000 using edge web renderer mode"),
+      bullet("Eel-based web UI frontend served on localhost:8000 using edge web renderer mode"),,
 
       heading2("4.2 In Scope — Enterprise (Q4 2026 Roadmap)"),
       bullet("Multi-user role-based access control (RBAC) backed by enterprise DB schemas"),
@@ -257,10 +256,18 @@ async function makePRD() {
       bullet("FR-V4: User language preferences shall be saved automatically to language_config.json and persist across boots"),
 
       heading2("6.3 LLM Reasoning & NLU Engine"),
-      bullet("FR-L1: AI Chat capability shall utilize hugchat module authenticated via backend/cookie.json. The system shall fall back gracefully with clear warnings if cookies are missing or empty."),
-      bullet("FR-L2: System shall use CommandProcessor sequence matcher similarity ratios (threshold: 0.5) to route intents"),
-      bullet("FR-L3: System shall parse parameters (entities) by removing stop words ('open', 'play', 'send', 'call')"),
-      bullet("FR-L4: Conversation tracking shall maintain last command and last entity keys within a local context dictionary"),
+      bullet("FR-L1: AI Chat capability shall operate in a hybrid online/offline model. The system shall prioritize HuggingFace (hugchat) online responses but automatically route to local offline Ollama inference using gemma-heretic-local if cookies are missing, expired, or internet connection is down."),
+      bullet("FR-L2: If falling back to local Ollama, the system shall check if the server is active on port 11434, and if not, boot G:\\Shared\\bin\\ollama-windows.exe in the background with local cache pointing to G:\\Shared\\models\\ollama_data."),
+      bullet("FR-L3: The system shall verify if the model gemma-heretic-local is registered in Ollama. If missing, it shall automatically compile/create the model using G:\\Shared\\models\\Modelfile before executing the user query."),
+      bullet("FR-L4: System shall use CommandProcessor sequence matcher similarity ratios (threshold: 0.5) to route intents"),
+      bullet("FR-L5: System shall parse parameters (entities) by removing stop words ('open', 'play', 'send', 'call')"),
+      bullet("FR-L6: Conversation tracking shall maintain last command and last entity keys within a local context dictionary"),
+      
+      heading2("6.4 Dynamic Persona System"),
+      bullet("FR-P1: The system shall support voice/text commands to switch active personas between 'Jarvis' and 'Friday'."),
+      bullet("FR-P2: Activating the 'Friday' persona shall set the default reasoning priority to Online Cloud layers, falling back to Local Offline core if offline."),
+      bullet("FR-P3: Activating the 'Jarvis' persona shall set the default reasoning priority to Local Offline core, falling back to Online Cloud layers if offline core fails."),
+      bullet("FR-P4: Assistant address formats ('Sir' for Jarvis, 'Boss' for Friday), verbal greeting templates, and local GGUF system instructions shall adjust dynamically according to the active persona."),
 
       heading2("6.4 Integration & Execution Adapter"),
       bullet("FR-I1: Application launching shall scan the SQLite database (jarvis.db) tables sys_command and web_command to map commands to local executables or web browser URLs."),
@@ -332,9 +339,9 @@ async function makeTAD() {
         "  ② Background Process  — Hotword Listener (pvporcupine) simulating pyautogui keystrokes",
         "  ③ Main UI Process     — Eel server executing main.py startup and authentication",
         "  ④ Orchestration Engine — Python asyncio event loop + localized CommandProcessor",
-        "  ⑤ AI & Automation     — OpenCV LBPH recognizer | hugchat HF client | pyttsx3 SAPI5 | pyautogui",
+        "  ⑤ AI & Automation     — OpenCV LBPH recognizer | hugchat HF client & local Ollama (hybrid) | pyttsx3 SAPI5 | pyautogui",
         "  ⑥ Data Store           — SQLite (jarvis.db) and local JSON configurations",
-      ]),
+      ]),,
       ...spacer(1),
 
       heading1("2. Repository Structure & Module Map"),
@@ -358,9 +365,10 @@ async function makeTAD() {
         ["backend/language_manager.py", "Language config manager; tracks language switches (en, hi, mr) and maps codes"],
         ["backend/intelligent_processor.py", "Fuzzy command processor; checks intents using sequence match ratios"],
         ["backend/jarvis_personality.py", "Jarvis personality simulator; generates movie-style responses in correct locales"],
-        ["backend/feature.py", "Features including play_assistant_sound, hotword, openCommand, whatsApp, and chatBot"],
+        ["backend/feature.py", "Features including play_assistant_sound, hotword, openCommand, whatsApp, and hybrid online/offline chatBot"],
         ["backend/cookie.json", "Session cookie storage for HuggingFace (hugchat client access)"],
         ["backend/language_config.json", "Saved language code configuration"],
+        ["backend/persona_config.json", "Saved active assistant persona configuration (Jarvis vs Friday)"],
       ], ["Module", "Responsibility"]),
 
       ...spacer(1),
@@ -378,14 +386,15 @@ async function makeTAD() {
       bullet("Speech-to-Text: SpeechRecognition listens through PyAudio source, invoking r.recognize_google with current language code (en-US, hi-IN, mr-IN)."),
       bullet("Fuzzy Intent: SequenceMatcher compares queries to keyword lists. If match ratio > 0.5, intent type is recognized. If query contains a keyword (e.g. 'open' in query), default paths are assigned."),
       bullet("Context Tracker: Retains last_command and last_entity variables to resolve follow-ups."),
-      bullet("Text-to-Speech: pyttsx3 SAPI5 driver plays voice output locally at 174 WPM, concurrently updating UI DisplayMessage panels."),
+      bullet("Persona Router: Parses 'persona' commands to swap names and save state in backend/persona_config.json, dynamically adjusting SAPI5 synthesis prefix greetings and address formats (Sir vs Boss)."),
+      bullet("Text-to-Speech: pyttsx3 SAPI5 driver plays voice output locally at 174 WPM, concurrently updating UI DisplayMessage panels."),,
 
       ...spacer(1),
       heading2("3.3 Automation & Integrations"),
       bullet("App Launcher: Queries sys_command (local paths) and web_command (URLs) in SQLite. Runs os.startfile() or webbrowser.open() on match. Falls back to cmd.exe 'start' commands."),
       bullet("WhatsApp Protocol: Extracts number from contacts table. Formats whatsapp://send?phone=... URL, launches it via cmd, and automates tab-selections via pyautogui to trigger send."),
       bullet("YouTube Player: Uses pywhatkit.playonyt to search term and launch browser player directly."),
-      bullet("AI Chatbot: Initializes hugchat.ChatBot loading cookies from backend/cookie.json to query HuggingFace LLM models dynamically."),
+      bullet("AI Chatbot: Tries online hugchat connection with cookie.json session; falls back to local Ollama on port 11434. Automatically starts G:\\Shared\\bin\\ollama-windows.exe using local models cache at G:\\Shared\\models\\ollama_data and creates the gemma-heretic-local model from Modelfile if not present."),,
 
       ...spacer(1),
       heading1("4. Database Schema (SQLite)"),
@@ -578,9 +587,9 @@ async function makeOnboardingGuide() {
       twoColTable([
         ["Camera", "720p or 1080p webcam supporting cv2.VideoCapture(0) with direct show frames"],
         ["Microphone", "Standard microphone; audio streams set at 16kHz for pvporcupine"],
-        ["RAM", "8GB minimum; 16GB recommended"],
+        ["RAM", "16GB minimum; 32GB recommended (for local 5.34GB Gemma-4-E4B heretic GGUF model execution)"],
         ["OS", "Windows 10/11 (fully supports pyttsx3 SAPI5 driver)"],
-      ], ["Component", "Specification"]),
+      ], ["Component", "Specification"]),,
       ...spacer(1),
 
       heading2("1.2 Software Dependencies"),
@@ -633,16 +642,36 @@ async function makeOnboardingGuide() {
         "}",
       ]),
       body("Supported values: 'en' (English), 'hi' (Hindi), 'mr' (Marathi). Updated automatically when users issue commands like 'change language to Hindi'."),
+      ...spacer(1),
+      heading2("3.3 Local Offline Model Configuration (Ollama)"),
+      body("The hybrid chatbot fallback connects to a local Ollama instance configured with the offline Gemma-4-E4B-it heretic model:"),
+      bullet("Model Name: gemma-heretic-local"),
+      bullet("Binary Path: G:\\Shared\\bin\\ollama-windows.exe"),
+      bullet("Model Path: G:\\Shared\\models\\gemma-4-E4B-it-ultra-uncensored-heretic-Q4_K_M.gguf"),
+      bullet("Modelfile: G:\\Shared\\models\\Modelfile (defines temperature 0.7, top_p 0.9, and the uncensored system instructions)"),
+      bullet("Environment Variables: OLLAMA_MODELS set to G:\\Shared\\models\\ollama_data ensures that all model caches run entirely from the G:\\ volume, conserving local disk space."),
+      ...spacer(1),
+      
+      heading2("3.4 Persona Configuration (persona_config.json)"),
+      body("Located at backend/persona_config.json. Tracks active assistant identity and reasoning priority:"),
+      blueBox([
+        "{",
+        '  "persona": "Jarvis"',
+        "}"
+      ]),
+      body("Supported values: 'Jarvis' (Offline priority, address 'Sir'), 'Friday' (Online priority, address 'Boss'). Updated dynamically when user issues commands like 'activate Friday' or 'switch to Jarvis'."),
+      ...spacer(1),
 
       ...spacer(1),
       heading1("4. Troubleshooting"),
       twoColTable([
         ["cv2.face module not found", "Install opencv-contrib-python which embeds the face recognizers: pip install opencv-contrib-python"],
-        ["No cookies configured / HuggingChat error", "Verify backend/cookie.json contains active, unexpired session cookies exported from huggingface.co"],
+        ["No cookies configured / HuggingChat error", "Verify backend/cookie.json contains active, unexpired session cookies. Fallback to local Ollama should trigger automatically if cookies are invalid."],
+        ["Ollama failed to start / offline model unavailable", "Ensure G:\\ drive is mounted, check write permissions on G:\\Shared\\models\\ollama_data, and verify G:\\Shared\\bin\\ollama-windows.exe execution permissions."],
         ["PyAudio compilation errors on Windows", "Install precompiled wheel: pip install pipwin followed by pipwin install pyaudio"],
         ["pvporcupine key error", "Ensure Porcupine access key is configured or default pre-trained local model is active"],
         ["Numpy version warnings", "Ensure numpy is pinned to version < 2.0 (e.g. numpy>=1.25.0,<2.0)"],
-      ], ["Issue", "Resolution"]),
+      ], ["Issue", "Resolution"]),,
       ...spacer(1),
       body("Support portal: support.antigravity.ai   |   Documentation: docs.antigravity.ai", { color: C.grey, italic: true }),
     ]
