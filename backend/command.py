@@ -251,6 +251,11 @@ def processCommand(query: str) -> None:
         if command_type == 'language':
             handle_language_change(query)
             return
+            
+        # Handle persona switching
+        if command_type == 'persona':
+            handle_persona_change(query)
+            return
         
         # Command: Open application
         if command_type == 'open_app' or "open" in query:
@@ -291,28 +296,11 @@ def processCommand(query: str) -> None:
         elif command_type == 'date':
             handle_date_command(current_language)
         
-        # Command: Chat with AI (with fallback if cookies missing)
+        # Command: Chat with AI (Hybrid Online/Offline)
         else:
             try:
-                cookie_path = os.path.join("backend", "cookie.json")
-                
-                if not os.path.exists(cookie_path):
-                    msg = get_localized_message("cookies_missing", current_language)
-                    speak(msg)
-                    return
-                
-                # Check if cookies file has valid content
-                with open(cookie_path, 'r') as f:
-                    content = f.read().strip()
-                    if content == "[]" or not content:
-                        msg = get_localized_message("cookies_empty", current_language)
-                        speak(msg)
-                        return
-                
                 from backend.feature import chatBot
                 chatBot(query)
-            except FileNotFoundError:
-                speak("HuggingFace cookies file not found.")
             except Exception as e:
                 logger.warning(f"Chat error: {str(e)}")
                 help_msg = get_localized_message("try_specific_command", current_language)
@@ -382,3 +370,19 @@ def handle_date_command(language: str = 'en'):
     }
     
     speak(date_messages.get(language, date_messages['en']))
+
+
+def handle_persona_change(query: str):
+    """Handle assistant persona switching command"""
+    query_lower = query.lower()
+    
+    if 'friday' in query_lower:
+        jarvis.name = "Friday"
+        jarvis.save_persona()
+        speak("Friday mode activated. Re-routing core processes to online cloud layers, boss.")
+    elif 'jarvis' in query_lower:
+        jarvis.name = "Jarvis"
+        jarvis.save_persona()
+        speak("Jarvis mode activated. Prioritizing offline local intelligence cores, sir.")
+    else:
+        speak(f"Active persona is currently {jarvis.name}.")
