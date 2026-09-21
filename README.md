@@ -1,55 +1,62 @@
 # Jarvis-2025
 
-A desktop assistant project that uses Eel for the frontend and a Python backend with speech, hotword detection, and Hugging Face chat integration.
+A modern Python project engineered by Krishna Patil.
 
-Quick start
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Language](https://img.shields.io/badge/Language-Python-green.svg)](https://github.com/kriss2012/Jarvis-2025)
 
-### Step 1: Create Virtual Environment
+---
 
-```powershell
-python -m venv .\envJarvis
-& '.\envJarvis\Scripts\Activate.ps1'
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+## 📌 Overview
+
+**Jarvis-2025** is engineered for clarity, modularity, and high-performance execution.
+
+## 🛠️ Tech Stack
+
+- **Languages**: CSS3, HTML5, JavaScript, Python
+
+## 🏛️ Architecture
+
+```mermaid
+flowchart TD
+    UI[User Interface / Client] --> Core[Application Logic]
 ```
 
-### Step 2: Initialize Database
+## 🚀 Getting Started
 
-```powershell
-python create_sample_db.py
+### Prerequisites
+- Git
+- Python Runtime Environment
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/{self.username}/{name}.git
+cd {name}
+python -m venv venv
+# Activate environment
+# Windows: .\venv\Scripts\activate | Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### Step 3: Configure HuggingFace Cookies (Optional)
+### Running the Application
 
-Export your HuggingFace cookies and save to `backend/cookie.json`
-
-### Step 4: Run the Application
-
-```powershell
-python run.py
+```bash
+python main.py  # (or entrypoint script)
 ```
 
-## Troubleshooting
+## 🔒 Security
 
-**NumPy Compatibility Error:**
-```
-pip install 'numpy<2.0'
-```
+For security policies and reporting vulnerabilities, please see [SECURITY.md](SECURITY.md).
 
-**PyAudio Issues:**
-```
-pipwin install pyaudio
-```
+## 🤝 Contributing
 
-**cv2.face Module Error:**
-```
-pip install opencv-contrib-python
-```
+Contributions, issues, and feature requests are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and code of conduct.
 
-## Notes
+## 📄 License
 
-- `backend/cookie.json` is ignored (contains auth cookies)
-- `envJarvis/` is ignored
-- Database: `jarvis.db`
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-License: MIT
+## 👤 Author
+
+Developed by **[Krishna Patil](https://github.com/kriss2012)**.
